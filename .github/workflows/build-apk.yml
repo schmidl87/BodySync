@@ -32,24 +32,7 @@ jobs:
           rm -rf app-src
           mkdir -p app-src
 
-          unzip -q BodySync-v0.2.1.zip -d app-src
+          unzip -q BodySync-v0.2.2.zip -d app-src
 
-          echo "Extracted project:"
-          find app-src -maxdepth 4 -type f | sort
-
-      - name: Build Debug APK
-        working-directory: app-src
-        run: |
-          gradle assembleDebug --stacktrace
-
-      - name: Find APK
-        run: |
-          echo "APK files:"
-          find app-src -type f -name "*.apk" -print
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: BodySync-debug-apk
-          path: app-src/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          echo "=== Extracted Body Sync project ==="
+          find app-src -maxdepth 4 -
