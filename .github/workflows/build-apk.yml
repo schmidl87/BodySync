@@ -30,7 +30,7 @@ jobs:
         run: |
           rm -rf build-project
           mkdir build-project
-          unzip -q BodySync-v0.1.3.zip -d build-project
+          unzip -q BodySync-v0.2.0.zip -d build-project
           echo "Projektinhalt:"
           find build-project -maxdepth 3 -type f | sort
 
