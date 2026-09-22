@@ -1,0 +1,47 @@
+name: Build Body Sync APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Java 17 einrichten
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Gradle einrichten
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Body Sync Projekt entpacken
+        run: |
+          rm -rf build-project
+          mkdir build-project
+          unzip -q BodySync-v0.1.1.zip -d build-project
+          cd build-project/BodySync-v0.1.1
+          echo "Projektinhalt:"
+          find . -maxdepth 3 -type f | sort
+
+      - name: APK bauen
+        working-directory: build-project/BodySync-v0.1.1
+        run: gradle assembleDebug --stacktrace
+
+      - name: APK als Artifact bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: BodySync-APK
+          path: build-project/BodySync-v0.1.1/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
