@@ -34,33 +34,13 @@ jobs:
           mkdir -p app-src
 
           echo "=== ZIP contents ==="
-          unzip -l BodySync-v0.2.2.zip
+          unzip -l BodySync-v0.2.3.zip
 
-          echo "=== Extracting project ==="
-          unzip -q BodySync-v0.2.2.zip -d app-src
+          echo "=== Extracting Body Sync ==="
+          unzip -q BodySync-v0.2.3.zip -d app-src
 
-          echo "=== Extracted files ==="
+          echo "=== Project root ==="
           ls -la app-src
-
-      - name: Locate project root
-        shell: bash
-        run: |
-          set -e
-
-          if [ -f "app-src/settings.gradle.kts" ]; then
-            echo "Project found directly in app-src"
-            exit 0
-          fi
-
-          if [ -f "app-src/BodySync/settings.gradle.kts" ]; then
-            echo "Project found in app-src/BodySync"
-            exit 0
-          fi
-
-          echo "ERROR: Gradle project could not be found."
-          echo "Contents of app-src:"
-          ls -la app-src
-          exit 1
 
       - name: Prepare project
         shell: bash
@@ -68,23 +48,26 @@ jobs:
           set -e
 
           if [ -f "app-src/settings.gradle.kts" ]; then
-            echo "Using app-src as project root."
+            echo "Project found directly in app-src."
+
           elif [ -f "app-src/BodySync/settings.gradle.kts" ]; then
-            echo "Moving nested BodySync project to app-src."
+            echo "Project found in nested BodySync folder."
 
             shopt -s dotglob
             cp -R app-src/BodySync/* app-src/
             rm -rf app-src/BodySync
-          fi
 
-          echo "=== Final project structure ==="
-          ls -la app-src
+          else
+            echo "ERROR: Gradle project not found."
+            ls -la app-src
+            exit 1
+          fi
 
           test -f app-src/settings.gradle.kts
           test -f app-src/build.gradle.kts
           test -d app-src/app
 
-          echo "Gradle project verified successfully."
+          echo "Body Sync Gradle project verified."
 
       - name: Build Debug APK
         shell: bash
@@ -95,7 +78,7 @@ jobs:
           echo "=== Gradle version ==="
           gradle --version
 
-          echo "=== Starting Body Sync build ==="
+          echo "=== Building Body Sync v0.2.3 ==="
           gradle assembleDebug --stacktrace --no-daemon
 
       - name: Check APK
@@ -103,21 +86,19 @@ jobs:
         run: |
           set -e
 
-          APK_PATH="app-src/app/build/outputs/apk/debug/app-debug.apk"
+          APK="app-src/app/build/outputs/apk/debug/app-debug.apk"
 
-          if [ ! -f "$APK_PATH" ]; then
+          if [ ! -f "$APK" ]; then
             echo "ERROR: APK was not generated."
-            echo "Expected:"
-            echo "$APK_PATH"
             exit 1
           fi
 
-          echo "APK successfully created:"
-          ls -lh "$APK_PATH"
+          echo "=== APK successfully created ==="
+          ls -lh "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BodySync-v0.2.2-debug
+          name: BodySync-v0.2.3-debug
           path: app-src/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
