@@ -22,32 +22,29 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
 
       - name: Extract Body Sync project
         run: |
           set -e
+
           rm -rf app-src
           mkdir -p app-src
+
           unzip -q BodySync-v0.2.1.zip -d app-src
 
-          if [ -d "app-src/BodySync" ]; then
-            shopt -s dotglob
-            mv app-src/BodySync/* app-src/
-            rmdir app-src/BodySync
-          fi
-
-          echo "Project files:"
-          find app-src -maxdepth 3 -type f | sort
-
-      - name: Make Gradle executable
-        run: chmod +x app-src/gradlew
+          echo "Extracted project:"
+          find app-src -maxdepth 4 -type f | sort
 
       - name: Build Debug APK
         working-directory: app-src
-        run: ./gradlew assembleDebug --stacktrace
+        run: |
+          gradle assembleDebug --stacktrace
 
       - name: Find APK
         run: |
+          echo "APK files:"
           find app-src -type f -name "*.apk" -print
 
       - name: Upload APK
