@@ -31,17 +31,16 @@ jobs:
           rm -rf build-project
           mkdir build-project
           unzip -q BodySync-v0.1.1.zip -d build-project
-          cd build-project/BodySync-v0.1.1
           echo "Projektinhalt:"
-          find . -maxdepth 3 -type f | sort
+          find build-project -maxdepth 3 -type f | sort
 
       - name: APK bauen
-        working-directory: build-project/BodySync-v0.1.1
+        working-directory: build-project
         run: gradle assembleDebug --stacktrace
 
       - name: APK als Artifact bereitstellen
         uses: actions/upload-artifact@v4
         with:
           name: BodySync-APK
-          path: build-project/BodySync-v0.1.1/app/build/outputs/apk/debug/app-debug.apk
+          path: build-project/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
