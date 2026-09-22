@@ -1,4 +1,4 @@
-name: Build Body Sync v0.5.2
+name: Build Body Sync v0.5.3
 
 on:
   workflow_dispatch:
@@ -32,7 +32,7 @@ jobs:
           rm -rf app-src
           mkdir -p app-src
 
-          unzip -q BodySync-v0.5.2.zip -d app-src
+          unzip -q BodySync-v0.5.3.zip -d app-src
 
           echo "Project files:"
           find app-src -maxdepth 3 -type f | sort
@@ -44,15 +44,14 @@ jobs:
           if [ -f "app-src/settings.gradle.kts" ]; then
             echo "PROJECT_DIR=app-src" >> "$GITHUB_ENV"
 
-          elif [ -f "app-src/BodySync-v0.5.2/settings.gradle.kts" ]; then
-            echo "PROJECT_DIR=app-src/BodySync-v0.5.2" >> "$GITHUB_ENV"
+          elif [ -f "app-src/BodySync-v0.5.3/settings.gradle.kts" ]; then
+            echo "PROJECT_DIR=app-src/BodySync-v0.5.3" >> "$GITHUB_ENV"
 
           elif [ -f "app-src/BodySync/settings.gradle.kts" ]; then
             echo "PROJECT_DIR=app-src/BodySync" >> "$GITHUB_ENV"
 
           else
             echo "ERROR: settings.gradle.kts not found"
-            echo ""
             find app-src -name settings.gradle.kts -print
             exit 1
           fi
@@ -65,10 +64,6 @@ jobs:
 
           echo "Project root:"
           pwd
-
-          echo ""
-          echo "Project files:"
-          ls -la
 
           test -f settings.gradle.kts
           test -f build.gradle.kts
@@ -90,13 +85,6 @@ jobs:
         run: |
           set -e
 
-          echo "Searching for APK..."
-
-          find "$PROJECT_DIR/app/build/outputs/apk" \
-            -type f \
-            -name "*.apk" \
-            -print
-
           APK=$(find "$PROJECT_DIR/app/build/outputs/apk" \
             -type f \
             -name "*.apk" \
@@ -107,7 +95,6 @@ jobs:
             exit 1
           fi
 
-          echo ""
           echo "APK found:"
           echo "$APK"
 
@@ -116,6 +103,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BodySync-v0.5.2-debug
+          name: BodySync-v0.5.3-debug
           path: ${{ env.APK }}
           if-no-files-found: error
