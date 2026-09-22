@@ -3,14 +3,15 @@ name: Build Body Sync APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java 17
@@ -24,12 +25,92 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Build APK
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
+      - name: Extract Body Sync project
+        shell: bash
+        run: |
+          set -e
+
+          echo "=== Repository ==="
+          ls -la
+
+          echo "=== Extracting Body Sync v0.3.0 ==="
+
+          rm -rf app-src
+          mkdir -p app-src
+
+          unzip -q BodySync-v0.3.0.zip -d app-src
+
+          echo "=== Extracted project ==="
+          ls -la app-src
+
+      - name: Detect Gradle project
+        shell: bash
+        run: |
+          set -e
+
+          if [ -f "app-src/settings.gradle.kts" ]; then
+            echo "PROJECT_ROOT=app-src" >> "$GITHUB_ENV"
+            echo "Gradle project found in app-src."
+
+          elif [ -f "app-src/BodySync/settings.gradle.kts" ]; then
+            echo "PROJECT_ROOT=app-src/BodySync" >> "$GITHUB_ENV"
+            echo "Gradle project found in app-src/BodySync."
+
+          else
+            echo "ERROR: Could not find settings.gradle.kts."
+            echo "Extracted files:"
+            ls -R app-src
+            exit 1
+          fi
+
+      - name: Verify Gradle project
+        shell: bash
+        run: |
+          set -e
+
+          echo "Using project root:"
+          echo "$PROJECT_ROOT"
+
+          test -f "$PROJECT_ROOT/settings.gradle.kts"
+          test -f "$PROJECT_ROOT/build.gradle.kts"
+          test -d "$PROJECT_ROOT/app"
+
+          echo "Gradle project structure is valid."
+
+      - name: Build Body Sync
+        shell: bash
+        run: |
+          set -e
+
+          echo "=== Gradle version ==="
+          gradle --version
+
+          echo "=== Building Body Sync v0.3.0 ==="
+
+          cd "$PROJECT_ROOT"
+
+          gradle assembleDebug --stacktrace --no-daemon
+
+      - name: Find generated APK
+        shell: bash
+        run: |
+          set -e
+
+          APK="$PROJECT_ROOT/app/build/outputs/apk/debug/app-debug.apk"
+
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: APK was not generated."
+            echo "Expected APK:"
+            echo "$APK"
+            exit 1
+          fi
+
+          echo "=== APK successfully generated ==="
+          ls -lh "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: BodySync-v0.3.0-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.PROJECT_ROOT }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
