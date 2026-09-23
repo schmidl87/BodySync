@@ -1,47 +1,47 @@
 name: Build Body Sync APK
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    name: Build Debug APK
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Gradle
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
 
-      - name: Extract Body Sync
-        run: unzip -q BodySync-v0.11.1.zip -d body-sync-build
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
 
-      - name: Check project
-        run: |
-          test -f body-sync-build/settings.gradle.kts
-          test -f body-sync-build/build.gradle.kts
-          test -f body-sync-build/app/build.gradle.kts
-          echo "Body Sync project found."
+      - name: Clean previous build
+        run: ./gradlew clean --no-daemon
 
-      - name: Build APK
-        working-directory: body-sync-build
-        run: gradle assembleDebug --stacktrace --no-daemon
+      - name: Build Body Sync APK
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
 
-      - name: Upload APK
+      - name: Upload Body Sync APK
         uses: actions/upload-artifact@v4
         with:
-          name: BodySync-v0.11.1-debug
-          path: body-sync-build/app/build/outputs/apk/debug/app-debug.apk
+          name: BodySync-v0.12.0
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+          retention-days: 30
