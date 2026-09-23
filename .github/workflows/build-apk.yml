@@ -29,20 +29,47 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Locate Gradle project
+      - name: Prepare Gradle project
         shell: bash
         run: |
           set -e
 
-          PROJECT_DIR="$(find . -type f \( -name 'settings.gradle.kts' -o -name 'settings.gradle' \) -not -path './.git/*' -print -quit | xargs -r dirname)"
+          echo "Repository contents:"
+          find . -maxdepth 3 -type f -not -path './.git/*' | sort | head -200
+
+          PROJECT_DIR="$(find . -type f \( -name 'settings.gradle.kts' -o -name 'settings.gradle' \) \
+            -not -path './.git/*' \
+            -print -quit | xargs -r dirname || true)"
 
           if [ -z "$PROJECT_DIR" ]; then
-            echo "No Gradle project found."
-            exit 1
+            ZIP_FILE="$(find . -type f -iname 'BodySync*.zip' \
+              -not -path './.git/*' \
+              -print -quit || true)"
+
+            if [ -z "$ZIP_FILE" ]; then
+              echo "ERROR: No Gradle project and no BodySync ZIP found."
+              exit 1
+            fi
+
+            echo "Found Body Sync ZIP: $ZIP_FILE"
+
+            rm -rf .bodysync_extract
+            mkdir -p .bodysync_extract
+
+            unzip -q -o "$ZIP_FILE" -d .bodysync_extract
+
+            PROJECT_DIR="$(find .bodysync_extract -type f \
+              \( -name 'settings.gradle.kts' -o -name 'settings.gradle' \) \
+              -print -quit | xargs -r dirname || true)"
+
+            if [ -z "$PROJECT_DIR" ]; then
+              echo "ERROR: ZIP does not contain a Gradle project."
+              exit 1
+            fi
           fi
 
+          echo "Gradle project directory: $PROJECT_DIR"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-          echo "Using Gradle project: $PROJECT_DIR"
 
       - name: Verify update identity
         shell: bash
@@ -53,9 +80,10 @@ jobs:
 
           grep -q 'applicationId = "com.bodysync.app"' app/build.gradle.kts
           grep -q 'versionCode = 23' app/build.gradle.kts
+          grep -q 'versionName = "0.12.1"' app/build.gradle.kts
           test -f bodysync-test.keystore
 
-          echo "Package ID and signing keystore verified."
+          echo "Update identity verified."
 
       - name: Build signed update APK
         shell: bash
@@ -73,9 +101,11 @@ jobs:
         run: |
           set -e
 
-          test -f "$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk"
+          APK="$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk"
 
-          ls -lh "$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK"
+
+          ls -lh "$APK"
 
       - name: Upload Body Sync APK
         uses: actions/upload-artifact@v4
