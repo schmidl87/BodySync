@@ -11,98 +11,69 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
 
-      - name: Prepare Android project
-        shell: bash
+      - name: Find Body Sync ZIP
         run: |
           set -e
-
-          rm -rf app-src
-
-          mkdir -p app-src
-
-          ZIP_FILE=$(find . -maxdepth 1 -type f -iname '*.zip' | head -n 1)
+          ZIP_FILE=$(find . -maxdepth 1 -type f -name 'BodySync-v0.7.2.zip' | head -n 1)
 
           if [ -z "$ZIP_FILE" ]; then
-            echo "ERROR: No ZIP file found in repository root."
+            echo "BodySync-v0.7.2.zip not found"
             exit 1
           fi
 
-          echo "Using ZIP: $ZIP_FILE"
+          echo "Found: $ZIP_FILE"
+          echo "ZIP_FILE=$ZIP_FILE" >> "$GITHUB_ENV"
 
-          unzip -q "$ZIP_FILE" -d app-src
-
-          echo "Extracted files:"
-          find app-src -maxdepth 3 -type f | head -100
-
-          PROJECT_ROOT=""
-
-          if [ -f "app-src/settings.gradle.kts" ]; then
-            PROJECT_ROOT="app-src"
-          elif [ -f "app-src/BodySync/settings.gradle.kts" ]; then
-            PROJECT_ROOT="app-src/BodySync"
-          else
-            FOUND=$(find app-src -name settings.gradle.kts -type f | head -n 1)
-
-            if [ -n "$FOUND" ]; then
-              PROJECT_ROOT=$(dirname "$FOUND")
-            fi
-          fi
-
-          if [ -z "$PROJECT_ROOT" ]; then
-            echo "ERROR: Could not find settings.gradle.kts"
-            exit 1
-          fi
-
-          echo "Project root: $PROJECT_ROOT"
-
-          if [ ! -f "$PROJECT_ROOT/build.gradle.kts" ]; then
-            echo "ERROR: build.gradle.kts not found."
-            exit 1
-          fi
-
-          if [ ! -f "$PROJECT_ROOT/app/build.gradle.kts" ]; then
-            echo "ERROR: app/build.gradle.kts not found."
-            exit 1
-          fi
-
-          echo "PROJECT_ROOT=$PROJECT_ROOT" >> "$GITHUB_ENV"
-
-      - name: Make Gradle executable
-        shell: bash
-        run: |
-          set -e
-          chmod +x "$PROJECT_ROOT/gradlew" 2>/dev/null || true
-
-      - name: Build Body Sync v0.7.2
-        shell: bash
+      - name: Extract project
         run: |
           set -e
 
-          cd "$PROJECT_ROOT"
+          rm -rf body-sync-build
+          mkdir -p body-sync-build
 
-          if [ -f "./gradlew" ]; then
-            ./gradlew assembleDebug --stacktrace --no-daemon
-          else
-            gradle assembleDebug --stacktrace --no-daemon
-          fi
+          unzip -q "$ZIP_FILE" -d body-sync-build
+
+          echo "Extracted project:"
+          ls -la body-sync-build
+
+      - name: Build APK
+        working-directory: body-sync-build
+        run: |
+          set -e
+
+          gradle assembleDebug --stacktrace --no-daemon
 
       - name: Find APK
-        shell: bash
         run: |
           set -e
 
-          APK=$(find "$PROJECT_ROOT/app/build/outputs/apk"
+          APK_FILE=$(find body-sync-build/app/build/outputs/apk -type f -name '*.apk' | head -n 1)
+
+          if [ -z "$APK_FILE" ]; then
+            echo "APK not found"
+            exit 1
+          fi
+
+          echo "APK: $APK_FILE"
+          echo "APK_FILE=$APK_FILE" >> "$GITHUB_ENV"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BodySync-v0.7.2-debug
+          path: ${{ env.APK_FILE }}
+          if-no-files-found: error
