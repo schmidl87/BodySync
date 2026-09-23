@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Body Sync v0.12.3
+    name: Build Body Sync v0.12.4
     runs-on: ubuntu-latest
 
     steps:
@@ -41,12 +41,10 @@ jobs:
           fi
 
           if [ -z "$PROJECT_DIR" ]; then
-            ZIP_FILE="./BodySync-v0.12.3-update-fixed.zip"
+            ZIP_FILE="./BodySync-v0.12.4-update-fixed.zip"
 
             if [ ! -f "$ZIP_FILE" ]; then
               echo "ERROR: Required ZIP not found: $ZIP_FILE"
-              echo
-              echo "Available Body Sync ZIP files:"
               find . -type f -iname 'BodySync*.zip' \
                 -not -path './.git/*' \
                 -print | sort || true
@@ -81,8 +79,8 @@ jobs:
           cd "$PROJECT_DIR"
 
           grep -q 'applicationId = "com.bodysync.app"' app/build.gradle.kts
-          grep -q 'versionCode = 25' app/build.gradle.kts
-          grep -q 'versionName = "0.12.3"' app/build.gradle.kts
+          grep -q 'versionCode = 26' app/build.gradle.kts
+          grep -q 'versionName = "0.12.4"' app/build.gradle.kts
 
           test -f bodysync-test.keystore
 
@@ -113,7 +111,7 @@ jobs:
       - name: Upload Body Sync APK
         uses: actions/upload-artifact@v4
         with:
-          name: BodySync-v0.12.3-update
+          name: BodySync-v0.12.4-update
           path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
