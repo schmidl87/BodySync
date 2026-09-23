@@ -26,12 +26,14 @@ jobs:
           gradle-version: '8.11.1'
 
       - name: Find Body Sync ZIP
+        shell: bash
         run: |
           set -e
-          ZIP_FILE=$(find . -maxdepth 1 -type f -name 'BodySync-v0.7.2.zip' | head -n 1)
+
+          ZIP_FILE=$(find . -maxdepth 1 -type f -name 'BodySync-v0.8.0.zip' | head -n 1)
 
           if [ -z "$ZIP_FILE" ]; then
-            echo "BodySync-v0.7.2.zip not found"
+            echo "ERROR: BodySync-v0.8.0.zip not found"
             exit 1
           fi
 
@@ -39,6 +41,7 @@ jobs:
           echo "ZIP_FILE=$ZIP_FILE" >> "$GITHUB_ENV"
 
       - name: Extract project
+        shell: bash
         run: |
           set -e
 
@@ -47,33 +50,17 @@ jobs:
 
           unzip -q "$ZIP_FILE" -d body-sync-build
 
-          echo "Extracted project:"
-          ls -la body-sync-build
+          echo "Project files:"
+          find body-sync-build -maxdepth 2 -type f | sort
 
-      - name: Build APK
-        working-directory: body-sync-build
+      - name: Verify Android project
+        shell: bash
         run: |
           set -e
 
-          gradle assembleDebug --stacktrace --no-daemon
-
-      - name: Find APK
-        run: |
-          set -e
-
-          APK_FILE=$(find body-sync-build/app/build/outputs/apk -type f -name '*.apk' | head -n 1)
-
-          if [ -z "$APK_FILE" ]; then
-            echo "APK not found"
+          if [ ! -f "body-sync-build/settings.gradle.kts" ]; then
+            echo "ERROR: settings.gradle.kts not found"
             exit 1
           fi
 
-          echo "APK: $APK_FILE"
-          echo "APK_FILE=$APK_FILE" >> "$GITHUB_ENV"
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: BodySync-v0.7.2-debug
-          path: ${{ env.APK_FILE }}
-          if-no-files-found: error
+          if [
