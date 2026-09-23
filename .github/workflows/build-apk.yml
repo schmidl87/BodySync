@@ -25,42 +25,23 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Find Body Sync ZIP
-        shell: bash
+      - name: Extract Body Sync
+        run: unzip -q BodySync-v0.8.0.zip -d body-sync-build
+
+      - name: Check project
         run: |
-          set -e
+          test -f body-sync-build/settings.gradle.kts
+          test -f body-sync-build/build.gradle.kts
+          test -f body-sync-build/app/build.gradle.kts
+          echo "Body Sync project found."
 
-          ZIP_FILE=$(find . -maxdepth 1 -type f -name 'BodySync-v0.8.0.zip' | head -n 1)
+      - name: Build APK
+        working-directory: body-sync-build
+        run: gradle assembleDebug --stacktrace --no-daemon
 
-          if [ -z "$ZIP_FILE" ]; then
-            echo "ERROR: BodySync-v0.8.0.zip not found"
-            exit 1
-          fi
-
-          echo "Found: $ZIP_FILE"
-          echo "ZIP_FILE=$ZIP_FILE" >> "$GITHUB_ENV"
-
-      - name: Extract project
-        shell: bash
-        run: |
-          set -e
-
-          rm -rf body-sync-build
-          mkdir -p body-sync-build
-
-          unzip -q "$ZIP_FILE" -d body-sync-build
-
-          echo "Project files:"
-          find body-sync-build -maxdepth 2 -type f | sort
-
-      - name: Verify Android project
-        shell: bash
-        run: |
-          set -e
-
-          if [ ! -f "body-sync-build/settings.gradle.kts" ]; then
-            echo "ERROR: settings.gradle.kts not found"
-            exit 1
-          fi
-
-          if [
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BodySync-v0.8.0-debug
+          path: body-sync-build/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
