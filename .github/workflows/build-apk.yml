@@ -1,4 +1,4 @@
-name: Build Body Sync v0.6.0
+name: Build Body Sync v0.7.0
 
 on:
   workflow_dispatch:
@@ -32,7 +32,7 @@ jobs:
           rm -rf app-src
           mkdir -p app-src
 
-          unzip -q BodySync-v0.6.0.zip -d app-src
+          unzip -q BodySync-v0.7.0.zip -d app-src
 
           echo "Project files:"
           find app-src -maxdepth 3 -type f | sort
@@ -44,8 +44,8 @@ jobs:
           if [ -f "app-src/settings.gradle.kts" ]; then
             echo "PROJECT_DIR=app-src" >> "$GITHUB_ENV"
 
-          elif [ -f "app-src/BodySync-v0.6.0/settings.gradle.kts" ]; then
-            echo "PROJECT_DIR=app-src/BodySync-v0.6.0" >> "$GITHUB_ENV"
+          elif [ -f "app-src/BodySync-v0.7.0/settings.gradle.kts" ]; then
+            echo "PROJECT_DIR=app-src/BodySync-v0.7.0" >> "$GITHUB_ENV"
 
           elif [ -f "app-src/BodySync/settings.gradle.kts" ]; then
             echo "PROJECT_DIR=app-src/BodySync" >> "$GITHUB_ENV"
@@ -64,8 +64,6 @@ jobs:
 
           echo "Project root:"
           pwd
-
-          echo "Checking Gradle files..."
 
           test -f settings.gradle.kts
           test -f build.gradle.kts
@@ -105,6 +103,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BodySync-v0.6.0-debug
+          name: BodySync-v0.7.0-debug
           path: ${{ env.APK }}
           if-no-files-found: error
