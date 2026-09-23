@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Debug APK
+    name: Build Body Sync v0.12.0
     runs-on: ubuntu-latest
 
     steps:
@@ -24,19 +24,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
+      - name: Set up Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
-      - name: Clean previous build
-        run: ./gradlew clean --no-daemon
-
       - name: Build Body Sync APK
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        run: gradle clean assembleDebug --stacktrace --no-daemon
 
       - name: Upload Body Sync APK
         uses: actions/upload-artifact@v4
