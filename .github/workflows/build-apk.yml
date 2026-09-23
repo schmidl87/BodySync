@@ -1,4 +1,4 @@
-name: Build Body Sync v0.7.0
+name: Build Body Sync APK
 
 on:
   workflow_dispatch:
@@ -11,98 +11,98 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Gradle
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
 
-      - name: Prepare project
+      - name: Prepare Android project
+        shell: bash
         run: |
           set -e
 
           rm -rf app-src
+
           mkdir -p app-src
 
-          unzip -q BodySync-v0.7.0.zip -d app-src
+          ZIP_FILE=$(find . -maxdepth 1 -type f -iname '*.zip' | head -n 1)
 
-          echo "Project files:"
-          find app-src -maxdepth 3 -type f | sort
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ERROR: No ZIP file found in repository root."
+            exit 1
+          fi
 
-      - name: Detect Gradle project
-        run: |
-          set -e
+          echo "Using ZIP: $ZIP_FILE"
+
+          unzip -q "$ZIP_FILE" -d app-src
+
+          echo "Extracted files:"
+          find app-src -maxdepth 3 -type f | head -100
+
+          PROJECT_ROOT=""
 
           if [ -f "app-src/settings.gradle.kts" ]; then
-            echo "PROJECT_DIR=app-src" >> "$GITHUB_ENV"
-
-          elif [ -f "app-src/BodySync-v0.7.0/settings.gradle.kts" ]; then
-            echo "PROJECT_DIR=app-src/BodySync-v0.7.0" >> "$GITHUB_ENV"
-
+            PROJECT_ROOT="app-src"
           elif [ -f "app-src/BodySync/settings.gradle.kts" ]; then
-            echo "PROJECT_DIR=app-src/BodySync" >> "$GITHUB_ENV"
-
+            PROJECT_ROOT="app-src/BodySync"
           else
-            echo "ERROR: settings.gradle.kts not found"
-            find app-src -name settings.gradle.kts -print
+            FOUND=$(find app-src -name settings.gradle.kts -type f | head -n 1)
+
+            if [ -n "$FOUND" ]; then
+              PROJECT_ROOT=$(dirname "$FOUND")
+            fi
+          fi
+
+          if [ -z "$PROJECT_ROOT" ]; then
+            echo "ERROR: Could not find settings.gradle.kts"
             exit 1
           fi
 
-      - name: Verify project
+          echo "Project root: $PROJECT_ROOT"
+
+          if [ ! -f "$PROJECT_ROOT/build.gradle.kts" ]; then
+            echo "ERROR: build.gradle.kts not found."
+            exit 1
+          fi
+
+          if [ ! -f "$PROJECT_ROOT/app/build.gradle.kts" ]; then
+            echo "ERROR: app/build.gradle.kts not found."
+            exit 1
+          fi
+
+          echo "PROJECT_ROOT=$PROJECT_ROOT" >> "$GITHUB_ENV"
+
+      - name: Make Gradle executable
+        shell: bash
+        run: |
+          set -e
+          chmod +x "$PROJECT_ROOT/gradlew" 2>/dev/null || true
+
+      - name: Build Body Sync v0.7.2
+        shell: bash
         run: |
           set -e
 
-          cd "$PROJECT_DIR"
+          cd "$PROJECT_ROOT"
 
-          echo "Project root:"
-          pwd
-
-          test -f settings.gradle.kts
-          test -f build.gradle.kts
-          test -f app/build.gradle.kts
-
-          echo "Gradle project looks OK."
-
-      - name: Build APK
-        run: |
-          set -e
-
-          cd "$PROJECT_DIR"
-
-          gradle assembleDebug \
-            --stacktrace \
-            --no-daemon
+          if [ -f "./gradlew" ]; then
+            ./gradlew assembleDebug --stacktrace --no-daemon
+          else
+            gradle assembleDebug --stacktrace --no-daemon
+          fi
 
       - name: Find APK
+        shell: bash
         run: |
           set -e
 
-          APK=$(find "$PROJECT_DIR/app/build/outputs/apk" \
-            -type f \
-            -name "*.apk" \
-            | head -n 1)
-
-          if [ -z "$APK" ]; then
-            echo "ERROR: APK not found"
-            exit 1
-          fi
-
-          echo "APK found:"
-          echo "$APK"
-
-          echo "APK=$APK" >> "$GITHUB_ENV"
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: BodySync-v0.7.0-debug
-          path: ${{ env.APK }}
-          if-no-files-found: error
+          APK=$(find "$PROJECT_ROOT/app/build/outputs/apk"
